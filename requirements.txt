@@ -1,2 +1,2 @@
-aiohttp[speedups]==3.7.4.post0
-pydantic==1.7.3
+aiohttp[speedups]==3.8.1
+pydantic[email]==1.7.3

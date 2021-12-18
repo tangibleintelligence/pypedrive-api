@@ -15,6 +15,6 @@ setup(
     package_dir={"": "src"},
     python_requires=">3.6.1",
     install_requires=[
-        "aiohttp[speedups]>=3.7,<4", "pydantic>=1.7.3,<2"
+        "aiohttp[speedups]>=3.8,<4", "pydantic[email]>=1.7.3,<2"
     ],
 )
