@@ -73,11 +73,11 @@ def _client_request_with_token(api_token: str):
 
 
 class Client:
-    def __init__(self) -> None:
+    def __init__(self, api_token: str, base_url: str, lead_title_prefix: str) -> None:
         super().__init__()
-        self.api_token = "2800bf239dc735be297f65e2412b3c94ba576b27"  # TODO read in
-        self.base_url = "https://ti-sandbox.pipedrive.com"  # TODO read in
-        self.lead_title_prefix: str = "Signup"  # TODO read in
+        self.api_token = api_token
+        self.base_url = base_url
+        self.lead_title_prefix = lead_title_prefix
         self._session: Optional[ClientSession] = None
 
     async def __aenter__(self):
