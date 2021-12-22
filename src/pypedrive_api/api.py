@@ -190,6 +190,8 @@ class Client:
         # Create or get new label
         new_label = await self.create_or_get_lead_label(new_label)
 
-        # Update obj and update Pipedrive
-        lead.label_ids = [*lead.label_ids, new_label.id]
-        await self.update_lead(lead)
+        # Add the label (unless it already exists)
+        if new_label.id not in lead.label_ids:
+            # Update obj and update Pipedrive
+            lead.label_ids = [*lead.label_ids, new_label.id]
+            await self.update_lead(lead)
