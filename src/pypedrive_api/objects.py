@@ -27,10 +27,10 @@ class LeadLabel(BaseModel):
 
 
 class Lead(BaseModel):
-    id: Optional[ID] = None
+    id: Optional[UUID] = None
     title: str
     # owner_id
-    label_ids: List[ID]
+    label_ids: List[UUID] = []
     person_id: Optional[ID] = None
     organization_id: Optional[ID] = None
     # value
@@ -39,8 +39,10 @@ class Lead(BaseModel):
 
     @root_validator
     def person_or_org(cls, values):
-        if "person_id" not in values and "organization_id" not in values:
+        if values.get("person_id", None) is None and values.get("organization_id", None) is None:
             raise ValueError("Person or Org must be specified")
+
+        return values
 
 
 class ContactInfo(BaseModel, ABC):
@@ -58,11 +60,11 @@ class Phone(ContactInfo):
 
 class Person(BaseModel):
     id: Optional[ID] = None
-    name: Optional[str] = None
+    name: str
     # owner_id
     org_id: Optional[str] = None
-    email: Optional[Email] = None
-    phone: Optional[Phone] = None
+    email: List[Email] = []
+    phone: List[Phone] = []
     # add_time
 
 
