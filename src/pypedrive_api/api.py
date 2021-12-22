@@ -147,10 +147,12 @@ class Client:
     def _minimal_lead_title(self, email: str):
         return f"{self.lead_title_prefix}: {email}"
 
-    async def create_minimal_lead(self, email: str, label: Optional[LeadLabel]):
+    async def create_minimal_lead(self, email: str, name: Optional[str], label: Optional[LeadLabel]):
         """Creates a new simple lead with the provided email and optionally a label."""
         # Create a person for this email
-        person = Person(name=f"<{email}>", email=[Email(value=email)])
+        if name is None:
+            name = f"<{email}>"
+        person = Person(name=name, email=[Email(value=email)])
         person = await self.create_person(person)
 
         # Create the lead label, if needed
