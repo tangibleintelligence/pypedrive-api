@@ -3,8 +3,9 @@ Pipedrive objects in pydantic form. TODO implement all.
 """
 from abc import ABC
 from enum import Enum
-from typing import NewType, Optional, List
+from typing import NewType, Optional, List, Dict, Any
 from uuid import UUID
+from xmlrpc.client import Boolean
 
 from pydantic import BaseModel, root_validator, EmailStr
 
@@ -76,3 +77,22 @@ class Note(BaseModel):
     org_id: Optional[ID] = None
     content: str
     user_id: Optional[ID] = None
+
+
+class CustomFieldSource(str, Enum):
+    person = "person"
+    deal = "deal"
+    
+
+class CustomField(BaseModel):
+    """ Custom field for a Person, Deal, or Lead object """
+    id: Optional[ID] = None
+    key: str
+    name: str
+    field_type: str # Initially this was an Enum, but Pipedrive does not provide a complete list of possible enum values so now it's a str
+    # Available 'options' for the field, required for set or enum type fields
+    options: Optional[List[dict]] = None
+    add_visible_flag: Optional[Boolean] = True
+
+class CustomFields(BaseModel):
+    __root__: Dict[str, CustomField]
