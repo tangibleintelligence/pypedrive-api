@@ -4,15 +4,16 @@ Wrapper to API calls.
 
 # TODO env
 import asyncio
+import json
 from ssl import SSLContext
-from typing import List, Optional, Mapping, Iterable, Any, Type, Union
+from typing import Dict, List, Optional, Mapping, Iterable, Any, Type, Union
 
 from aiohttp import ClientSession, ClientRequest, BasicAuth, http, Fingerprint, ClientResponse
 from aiohttp.helpers import BaseTimerContext
 from aiohttp.typedefs import LooseHeaders, LooseCookies
 from yarl import URL
 
-from pypedrive_api.objects import LeadLabel, Person, Email, Lead
+from pypedrive_api.objects import CustomFields, CustomFieldSource, LeadLabel, Person, CustomField, Phone, Email, Lead
 
 
 def _client_request_with_token(api_token: str):
@@ -90,6 +91,34 @@ class Client:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self._session.__aexit__(exc_type, exc_val, exc_tb)
 
+    async def create_custom_field(self, field: CustomField, type: CustomFieldSource) -> CustomField:
+        async with self._session.post(f"/v1/{type}Fields", data=field.json(exclude={"id"})) as resp:
+            resp.raise_for_status()
+            resp_dict = await resp.json()
+            return CustomField(**(resp_dict["data"]))
+
+    async def update_custom_field(self, field: CustomField, type: CustomFieldSource) -> CustomField:
+        async with self._session.put(f"/v1/{type}Fields/{field.id}", data=field.json(exclude={"id"})) as resp:
+            resp.raise_for_status()
+            resp_dict = await resp.json()
+            return CustomField(**(resp_dict["data"]))
+
+    async def get_custom_person_fields(self):
+        """ From configuration, update all custom fields to match current state provided. """
+        async with self._session.get("/v1/personFields") as resp:
+            resp.raise_for_status()
+            resp_dict = await resp.json()
+            person_field_dicts = resp_dict["data"]
+            return [CustomField(**x) for x in person_field_dicts]
+
+    async def get_custom_deal_fields(self):
+        """ From configuration, update all custom fields to match current state provided. """
+        async with self._session.get("/v1/dealFields") as resp:
+            resp.raise_for_status()
+            resp_dict = await resp.json()
+            deal_field_dicts = resp_dict["data"]
+            return [CustomField(**x) for x in deal_field_dicts]
+
     async def create_lead_label(self, label: LeadLabel) -> LeadLabel:
         # TODO don't allow duplicates?
         async with self._session.post("/v1/leadLabels", data=label.json(exclude={"id"})) as resp:
@@ -104,19 +133,39 @@ class Client:
             lead_label_dicts = resp_dict["data"]
             return [LeadLabel(**x) for x in lead_label_dicts]
 
-    async def create_person(self, person: Person) -> Person:
-        # TODO don't allow duplicates?
-        async with self._session.post("/v1/persons", data=person.json(exclude={"id"})) as resp:
+    async def create_person(self, person: Person, custom_fields: CustomFields = {}) -> Person:
+        data = person.dict(exclude={"id"})
+        data.update(custom_fields)
+        data = json.dumps(data)
+        try:
+            async with self._session.get(f"/v1/persons/search?term={person.email[0].value}&fields=email&exact_match=true") as resp:
+                resp.raise_for_status()
+                resp_dict = await resp.json()
+                existing_person = Person(**(resp_dict["data"]["items"][0]["item"]))
+                print(existing_person)
+                async with self._session.put(f"/v1/persons/{existing_person.id}", data=data) as resp:
+                    resp.raise_for_status()
+                    resp_dict = await resp.json()
+                    return Person(**(resp_dict["data"]))
+        except:
+            # Person does not yet exist
+            pass
+        
+        async with self._session.post("/v1/persons", data=data) as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
             return Person(**(resp_dict["data"]))
 
-    async def create_lead(self, lead: Lead) -> Lead:
+    async def create_lead(self, lead: Lead, custom_fields: CustomFields = {}) -> Lead:
         # TODO don't allow duplicates?
-        async with self._session.post("/v1/leads", data=lead.json(exclude={"id"})) as resp:
+        data = lead.dict(exclude={"id"})
+        data.update(custom_fields)
+        data = json.dumps(data)
+        async with self._session.post("/v1/leads", data=data) as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
             return Lead(**(resp_dict["data"]))
+
 
     async def update_lead(self, lead: Lead) -> Lead:
         """Updates the given lead (by id) with the new field values"""

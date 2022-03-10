@@ -4,8 +4,8 @@ with open("README.md", encoding="utf-8") as readme:
     LONG_DESCRIPTION = readme.read()
 
 setup(
-    name="pypedrive-api",
-    version="0.2.0",
+    name="pypedrive-async",
+    version="0.2.1",
     description="Asyncio/aiohttp based library for interacting with the Pipedrive API.",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
