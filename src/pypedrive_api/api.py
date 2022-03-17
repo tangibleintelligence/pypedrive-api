@@ -5,15 +5,17 @@ Wrapper to API calls.
 # TODO env
 import asyncio
 import json
+from functools import partial
 from ssl import SSLContext
-from typing import Dict, List, Optional, Mapping, Iterable, Any, Type, Union
+from typing import List, Optional, Mapping, Iterable, Any, Type, Union
 
 from aiohttp import ClientSession, ClientRequest, BasicAuth, http, Fingerprint, ClientResponse
 from aiohttp.helpers import BaseTimerContext
 from aiohttp.typedefs import LooseHeaders, LooseCookies
+from pydantic.json import custom_pydantic_encoder
 from yarl import URL
 
-from pypedrive_api.objects import CustomFields, CustomFieldSource, LeadLabel, Person, CustomField, Phone, Email, Lead
+from pypedrive_api.objects import CustomFields, CustomFieldSource, LeadLabel, Person, CustomField, Email, Lead
 
 
 def _client_request_with_token(api_token: str):
@@ -104,7 +106,7 @@ class Client:
             return CustomField(**(resp_dict["data"]))
 
     async def get_custom_person_fields(self):
-        """ From configuration, update all custom fields to match current state provided. """
+        """From configuration, update all custom fields to match current state provided."""
         async with self._session.get("/v1/personFields") as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
@@ -112,7 +114,7 @@ class Client:
             return [CustomField(**x) for x in person_field_dicts]
 
     async def get_custom_deal_fields(self):
-        """ From configuration, update all custom fields to match current state provided. """
+        """From configuration, update all custom fields to match current state provided."""
         async with self._session.get("/v1/dealFields") as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
@@ -136,13 +138,12 @@ class Client:
     async def create_person(self, person: Person, custom_fields: CustomFields = {}) -> Person:
         data = person.dict(exclude={"id"})
         data.update(custom_fields)
-        data = json.dumps(data)
+        data = json.dumps(data, default=partial(custom_pydantic_encoder, Person.Config.json_encoders))
         try:
             async with self._session.get(f"/v1/persons/search?term={person.email[0].value}&fields=email&exact_match=true") as resp:
                 resp.raise_for_status()
                 resp_dict = await resp.json()
                 existing_person = Person(**(resp_dict["data"]["items"][0]["item"]))
-                print(existing_person)
                 async with self._session.put(f"/v1/persons/{existing_person.id}", data=data) as resp:
                     resp.raise_for_status()
                     resp_dict = await resp.json()
@@ -150,7 +151,7 @@ class Client:
         except:
             # Person does not yet exist
             pass
-        
+
         async with self._session.post("/v1/persons", data=data) as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
@@ -160,12 +161,11 @@ class Client:
         # TODO don't allow duplicates?
         data = lead.dict(exclude={"id"})
         data.update(custom_fields)
-        data = json.dumps(data)
+        data = json.dumps(data, default=partial(custom_pydantic_encoder, Lead.Config.json_encoders))
         async with self._session.post("/v1/leads", data=data) as resp:
             resp.raise_for_status()
             resp_dict = await resp.json()
             return Lead(**(resp_dict["data"]))
-
 
     async def update_lead(self, lead: Lead) -> Lead:
         """Updates the given lead (by id) with the new field values"""
