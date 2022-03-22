@@ -15,7 +15,7 @@ from aiohttp.typedefs import LooseHeaders, LooseCookies
 from pydantic.json import custom_pydantic_encoder
 from yarl import URL
 
-from pypedrive_api.objects import CustomFields, CustomFieldSource, LeadLabel, Person, CustomField, Email, Lead
+from pypedrive_async.objects import CustomFields, CustomFieldSource, LeadLabel, Person, CustomField, Email, Lead
 
 
 def _client_request_with_token(api_token: str):

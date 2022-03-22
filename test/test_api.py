@@ -1,8 +1,8 @@
 import asyncio
 import os
 
-from pypedrive_api.api import Client
-from pypedrive_api.objects import LeadColor, LeadLabel
+from pypedrive_async.api import Client
+from pypedrive_async.objects import LeadColor, LeadLabel
 
 
 async def main():
