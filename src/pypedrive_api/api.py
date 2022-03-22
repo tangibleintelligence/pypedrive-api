@@ -140,6 +140,7 @@ class Client:
         data.update(custom_fields)
         data = json.dumps(data, default=partial(custom_pydantic_encoder, Person.Config.json_encoders))
         try:
+            # Person matching this email address already exists
             async with self._session.get(f"/v1/persons/search?term={person.email[0].value}&fields=email&exact_match=true") as resp:
                 resp.raise_for_status()
                 resp_dict = await resp.json()
@@ -150,22 +151,34 @@ class Client:
                     return Person(**(resp_dict["data"]))
         except:
             # Person does not yet exist
-            pass
-
-        async with self._session.post("/v1/persons", data=data) as resp:
-            resp.raise_for_status()
-            resp_dict = await resp.json()
-            return Person(**(resp_dict["data"]))
+            async with self._session.post("/v1/persons", data=data) as resp:
+                resp.raise_for_status()
+                resp_dict = await resp.json()
+                return Person(**(resp_dict["data"]))
 
     async def create_lead(self, lead: Lead, custom_fields: CustomFields = {}) -> Lead:
         # TODO don't allow duplicates?
         data = lead.dict(exclude={"id"})
         data.update(custom_fields)
+
         data = json.dumps(data, default=partial(custom_pydantic_encoder, Lead.Config.json_encoders))
-        async with self._session.post("/v1/leads", data=data) as resp:
-            resp.raise_for_status()
-            resp_dict = await resp.json()
-            return Lead(**(resp_dict["data"]))
+        
+        try:
+            # Lead matching that Person already exists
+            async with self._session.get(f"/v1/leads/search?term={lead.title}&fields=title&exact_match=true") as resp:
+                resp.raise_for_status()
+                resp_dict = await resp.json()
+                existing_lead = Lead(**(resp_dict["data"]["items"][0]["item"]), person_id=lead.person_id)
+                async with self._session.patch(f"/v1/leads/{existing_lead.id}", data=data) as resp:
+                    resp.raise_for_status()
+                    resp_dict = await resp.json()
+                    return Lead(**(resp_dict["data"]))
+        except:
+            # Lead does not yet exist
+            async with self._session.post("/v1/leads", data=data) as resp:
+                resp.raise_for_status()
+                resp_dict = await resp.json()
+                return Lead(**(resp_dict["data"]))
 
     async def update_lead(self, lead: Lead) -> Lead:
         """Updates the given lead (by id) with the new field values"""
