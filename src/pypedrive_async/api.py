@@ -144,6 +144,8 @@ class Client:
             async with self._session.get(f"/v1/persons/search?term={person.email[0].value}&fields=email&exact_match=true") as resp:
                 resp.raise_for_status()
                 resp_dict = await resp.json()
+                if len(resp_dict["data"]["items"]) == 0:
+                    raise ValueError("No matching person found. Creating new person.")
                 existing_person = Person(**(resp_dict["data"]["items"][0]["item"]))
                 async with self._session.put(f"/v1/persons/{existing_person.id}", data=data) as resp:
                     resp.raise_for_status()
@@ -158,6 +160,9 @@ class Client:
 
     async def create_lead(self, lead: Lead, custom_fields: CustomFields = {}) -> Lead:
         data = lead.dict(exclude={"id"})
+        # If owner_id is None, including it will cause an error
+        if data["owner_id"] is None:
+            del data["owner_id"]
         data.update(custom_fields)
 
         data = json.dumps(data, default=partial(custom_pydantic_encoder, Lead.Config.json_encoders))
@@ -167,6 +172,8 @@ class Client:
             async with self._session.get(f"/v1/leads/search?term={lead.title}&fields=title&exact_match=true") as resp:
                 resp.raise_for_status()
                 resp_dict = await resp.json()
+                if len(resp_dict["data"]["items"]) == 0:
+                    raise ValueError("No matching lead found. Creating new lead.")
                 existing_lead = Lead(**(resp_dict["data"]["items"][0]["item"]), person_id=lead.person_id)
                 async with self._session.patch(f"/v1/leads/{existing_lead.id}", data=data) as resp:
                     resp.raise_for_status()
