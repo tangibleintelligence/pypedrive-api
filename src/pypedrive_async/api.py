@@ -157,7 +157,6 @@ class Client:
                 return Person(**(resp_dict["data"]))
 
     async def create_lead(self, lead: Lead, custom_fields: CustomFields = {}) -> Lead:
-        # TODO don't allow duplicates?
         data = lead.dict(exclude={"id"})
         data.update(custom_fields)
 

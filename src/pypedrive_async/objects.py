@@ -30,7 +30,7 @@ class LeadLabel(BaseModel):
 class Lead(BaseModel):
     id: Optional[UUID] = None
     title: str
-    # owner_id
+    owner_id: Optional[ID] = None
     label_ids: List[UUID] = []
     person_id: Optional[ID] = None
     organization_id: Optional[ID] = None
