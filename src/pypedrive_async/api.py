@@ -166,7 +166,7 @@ class Client:
         data.update(custom_fields)
 
         data = json.dumps(data, default=partial(custom_pydantic_encoder, Lead.Config.json_encoders))
-        
+
         try:
             # Lead matching that Person already exists
             async with self._session.get(f"/v1/leads/search?term={lead.title}&fields=title&exact_match=true") as resp:
@@ -252,10 +252,16 @@ class Client:
 
             return await self.get_lead(results[0]["item"]["id"])
 
-    async def add_label_to_minimal_lead(self, email: str, new_label: LeadLabel):
+    async def add_label_to_minimal_lead(self, email: str, new_label: LeadLabel, quiet: bool = False):
         """Adds a label to a previously created minimal lead"""
         # Get existing lead by searching
-        lead = await self.find_minimal_lead(email)
+        try:
+            lead = await self.find_minimal_lead(email)
+        except ValueError:
+            if quiet:
+                return
+            else:
+                raise
 
         # Create or get new label
         new_label = await self.create_or_get_lead_label(new_label)
